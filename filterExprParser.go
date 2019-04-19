@@ -33,6 +33,8 @@ import (
 // ConstFuncTwoArgs         = ConstFuncTwoArgsName "(" ConstFuncArgument "," ConstFuncArgument ")"
 // ConstFuncTwoArgsName     = "ATAN2" | "POW"
 // ConstFuncArgument        = Field | Value | ConstFuncExpr
+
+// should this be   ConstFuncArgumentRHS     = Value | ConstFuncExpr
 // ConstFuncArgumentRHS     = Value
 // PathFuncExpression       = OnePathFuncNoArg
 // OnePathFuncNoArg         = OnePathFuncNoArgName "(" ")"
@@ -106,6 +108,7 @@ func (fe *FilterExpression) String() string {
 func (f *FilterExpression) OutputExpression() (Expression, error) {
 	var outExpr OrExpr
 
+	// a stricter check is to check each subexpr is paren balanced, e.g., by letting each subexpr do the check itself
 	if f.GetTotalOpenParens() != f.GetTotalCloseParens() {
 		return outExpr, ErrorMalformedParenthesis
 	}
@@ -113,6 +116,7 @@ func (f *FilterExpression) OutputExpression() (Expression, error) {
 	for _, oneExpr := range f.AndConditions {
 		andExpr, err := oneExpr.OutputExpression()
 		if err != nil {
+			// better return nil, err
 			return outExpr, err
 		}
 		outExpr = append(outExpr, andExpr)
@@ -125,6 +129,7 @@ func (f *FilterExpression) OutputExpression() (Expression, error) {
 		for _, subFilterExpr := range f.SubFilterExpr {
 			subExpr, err := subFilterExpr.OutputExpression()
 			if err != nil {
+				// better return nil, err
 				return combinedExpr, err
 			}
 			combinedExpr = append(combinedExpr, subExpr)
@@ -153,7 +158,8 @@ func (fecp *FECloseParen) String() string {
 }
 
 type FEAndCondition struct {
-	OpenParens   []*FEOpenParen  `{ @@ }`
+	OpenParens []*FEOpenParen `{ @@ }`
+	// better rename to Conditions
 	OrConditions []*FECondition  `@@ { "AND" @@ }`
 	CloseParens  []*FECloseParen `{ @@ }`
 }
@@ -207,6 +213,7 @@ func (f *FEAndCondition) OutputExpression() (Expression, error) {
 	for _, oneExpr := range f.OrConditions {
 		expr, err := oneExpr.OutputExpression()
 		if err != nil {
+			// better return nil, err
 			return outExpr, err
 		}
 		outExpr = append(outExpr, expr)
@@ -236,6 +243,7 @@ func (f *FECondition) GetTotalCloseParens() (count int) {
 }
 
 func (fec *FECondition) String() string {
+	// a simple string should do
 	var outputStr []string
 
 	if fec.Not != nil {
@@ -261,6 +269,8 @@ func (f *FECondition) OutputExpression() (Expression, error) {
 }
 
 type FEOperand struct {
+	// not sure how the grouping on "(" works. if we have "LHS OP RHS",
+	// would this produce "( @@ ( ( @@ @@ )", which is not balanced?
 	BooleanExpr *FEBooleanExpr `@@ |`
 	LHS         *FELhs         `( @@ (`
 	Op          *FECompareOp   `( @@`
@@ -291,6 +301,7 @@ func (f *FEOperand) OutputExpression() (Expression, error) {
 
 		if f.CheckOp != nil {
 			outExpr, err := f.CheckOp.OutputExpression(lhsExpr)
+			// better return nil, err if err!= nil
 			return outExpr, err
 		} else if f.Op != nil && f.RHS != nil {
 			rhsExpr, err := f.RHS.OutputExpression()
@@ -348,9 +359,11 @@ func (feb *FEBoolean) String() string {
 	} else if feb.FVal1 != nil && *feb.FVal1 == true {
 		return fmt.Sprintf("%v(bool)", strings.ToLower(OperatorFalse))
 	}
+	// better return ?? or some other invalid val marker
 	return ""
 }
 
+// can this piggyback on String() to centralize logic? (return strings.ToUpper(String()) == OperatorTrue)
 // Should use IsSet() to make sure it's first set
 func (feb *FEBoolean) GetBool() bool {
 	if feb.TVal != nil && *feb.TVal == true {
@@ -480,6 +493,7 @@ func (fef *FEField) String() string {
 	if fef.MathOp != nil {
 		outerOutput = append(outerOutput, fef.MathOp.String())
 	}
+	// validate that MathValue != nil when MathOp != nil?
 	if fef.MathValue != nil {
 		outerOutput = append(outerOutput, fef.MathValue.String())
 	}
@@ -496,6 +510,7 @@ func (f *FEField) OutputExpression() (Expression, error) {
 	for _, onePath := range f.Path {
 		pathName, arrays, err := onePath.OutputOnePath()
 		if err != nil {
+			// retrn nil err
 			return outExpr, err
 		}
 		outExpr.Path = append(outExpr.Path, pathName)
@@ -504,6 +519,16 @@ func (f *FEField) OutputExpression() (Expression, error) {
 		}
 	}
 
+	// following is a better way to structure code
+	// mathOutExpr = outExpr
+	// if Neg != nil {
+	//   mathOutExpr =  FuncExpr{FuncName: MathFuncNeg} ...
+	// }
+	// if MethOp != nil {
+	//   newMathoutExpr = combine mathOutExpr, Op and Value
+	//    mathOutExpr = newMathOutExpr
+	// }
+	// return mathOutExpr
 	if f.MathNeg != nil || (f.MathOp != nil && f.MathValue != nil) {
 		var mathOutExpr FuncExpr
 		if f.MathOp == nil {
@@ -537,6 +562,9 @@ func (f *FEField) OutputExpression() (Expression, error) {
 		return outExpr, nil
 	}
 }
+
+// other than date value, if a literal string is incorrectly captured as FEField, would it be problematic as well?
+// shouldn't literals be inside quotes like "" and ''? can't we use quotes for differentiation?
 
 // The problem with this parser is that if FEField is prioritized higher than FEValue, then
 // it's possible that a valid FEValue gets captured by FEField as it will soak up any valid @String
@@ -577,6 +605,7 @@ func (f *FEStringType) String() string {
 	} else if len(f.EscapedStrVal) > 0 {
 		return f.EscapedStrVal
 	} else {
+		// return error symbol?
 		return ""
 	}
 }
@@ -594,6 +623,7 @@ func (feop *FEOnePath) String() string {
 	} else if len(feop.StrValue.String()) > 0 {
 		output = append(output, feop.StrValue.String())
 	} else {
+		// append error?
 		output = append(output, "")
 	}
 	for i := 0; i < len(feop.ArrayIndexes); i++ {
@@ -770,6 +800,9 @@ func (f *FEValue) OutputExpression() (Expression, error) {
 		return ValueExpr{}, fmt.Errorf("Invalid FEValue: %v", f.String())
 	}
 }
+
+// i do not get the complication. is it that op chars could collide with symbols in other types of operands?
+// even so doing multiple-char matching, e.g., trying to match "<>", should reduce the chance of colliding.
 
 // We have to do this funky way of matching because our FEOperand expression may not be composed of a compareOp
 // And due to the complicated FEOperand op, we have to do char by char match so we can catch the not-matched case
@@ -1044,6 +1077,8 @@ func (n *FEConstFuncNoArgName) String() string {
 	}
 }
 
+// the comment "Prioritize value over field" seems to belong here
+
 // Order matters
 type FEConstFuncArgument struct {
 	SubFunc  *FEConstFuncExpression `@@ |`
@@ -1075,6 +1110,7 @@ func (f *FEConstFuncArgument) OutputExpression() (Expression, error) {
 	}
 }
 
+// comment not applicable
 // Prioritize value over field
 type FEConstFuncArgumentRHS struct {
 	SubFunc  *FEConstFuncExpression `@@ |`
@@ -1131,11 +1167,13 @@ func (f *FEConstFuncOneArg) OutputExpression() (Expression, error) {
 	}
 	name, err := f.ConstFuncOneArgName.OutputExpression()
 	if err != nil {
+		// nil, err
 		return outExpr, err
 	}
 	outExpr.FuncName = name
 	arg, err := f.Argument.OutputExpression()
 	if err != nil {
+		// nil, err
 		return outExpr, err
 	}
 	outExpr.Params = append(outExpr.Params, arg)
@@ -1143,6 +1181,7 @@ func (f *FEConstFuncOneArg) OutputExpression() (Expression, error) {
 }
 
 type FEConstFuncOneArgName struct {
+	// N1QL also supports sign(expr) and random(expr)
 	Abs     *bool `@"ABS" |`
 	Acos    *bool `@"ACOS" |`
 	Asin    *bool `@"ASIN" |`
@@ -1262,15 +1301,18 @@ func (f *FEConstFuncTwoArgs) OutputExpression() (Expression, error) {
 	}
 	name, err := f.ConstFuncTwoArgsName.OutputExpression()
 	if err != nil {
+		// nil, err
 		return outExpr, err
 	}
 	outExpr.FuncName = name
 	arg0, err := f.Argument0.OutputExpression()
 	if err != nil {
+		// nil, err
 		return outExpr, err
 	}
 	arg1, err := f.Argument1.OutputExpression()
 	if err != nil {
+		// nil, err
 		return outExpr, err
 	}
 	outExpr.Params = append(outExpr.Params, arg0)
@@ -1279,6 +1321,8 @@ func (f *FEConstFuncTwoArgs) OutputExpression() (Expression, error) {
 }
 
 type FEConstFuncTwoArgsName struct {
+	// n1ql has POWER(), not POW()
+	// n1ql also has ROUND() and TRUNC() which could take 1-2 args
 	Atan2 *bool `@"ATAN2" |`
 	Power *bool `@"POW"`
 }
@@ -1352,12 +1396,14 @@ func (f *FEBooleanFuncTwoArgs) OutputExpression() (Expression, error) {
 
 		arg0, err := f.Argument0.OutputExpression()
 		if err != nil {
+			// nil, err
 			return outExpr, err
 		}
 		outExpr.Lhs = arg0
 
 		arg1, err := f.Argument1.OutputRegexExpression()
 		if err != nil {
+			// nil, err
 			return outExpr, err
 		}
 		outExpr.Rhs = arg1
@@ -1432,12 +1478,14 @@ func NewFilterExpressionParser(expression string) (*participle.Parser, *FilterEx
 
 	parser, err := participle.Build(fe)
 	if err != nil {
+		// nil nil err
 		return parser, fe, err
 	}
 
 	// Use a wrapper so we can recover any panic and set the error gracefully
 	parserWrapper(parser, expression, fe, &err)
 
+	// return nil nil when err != nil
 	return parser, fe, err
 }
 

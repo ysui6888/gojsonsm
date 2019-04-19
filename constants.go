@@ -164,6 +164,8 @@ type funcNameType string
 type funcRecursiveIdx int
 
 // Support for pcre's lookahead class of regex
+
+// do we need the "\\" before "=, <, !"? I thought these are not special chars in regexp
 const lookAheadPattern = "\\(\\?\\=.+\\)"
 const lookBehindPattern = "\\(\\?\\<.+\\)"
 const negLookAheadPattern = "\\(\\?\\!.+\\)"
