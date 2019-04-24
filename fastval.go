@@ -190,8 +190,10 @@ func (val FastVal) AsInt() int64 {
 	case FalseValue:
 		return 0
 	case NullValue:
+		// should this be MaxInt64 to be more consistent with other funcs like AsUint()?
 		return math.MinInt64
 	}
+	// return error?
 	return 0
 }
 
@@ -288,6 +290,7 @@ func (val FastVal) ToBinString() (FastVal, error) {
 func (val FastVal) ToJsonString() (FastVal, error) {
 	switch val.dataType {
 	case StringValue:
+		// why add quotes then ignore them? can't we just do a string->slice copy?
 		// TODO: Improve AsJsonString allocations
 		quotedBytes := strconv.AppendQuote(nil, val.data.(string))
 		return NewJsonStringFastVal(quotedBytes[1 : len(quotedBytes)-1]), nil
@@ -305,6 +308,8 @@ func (val FastVal) ToJsonString() (FastVal, error) {
 func (val FastVal) floatToIntOverflows() bool {
 	floatVal := val.GetFloat()
 
+	// comments no longer applicable?
+
 	// Instead of using math constants that could potentially lead to rounding errors,
 	// force a float-to-float comparison here
 	if !(floatVal >= math.MinInt64 && floatVal <= math.MaxInt64) {
@@ -315,6 +320,8 @@ func (val FastVal) floatToIntOverflows() bool {
 }
 
 func (val FastVal) compareInt(other FastVal) int {
+	//should check if float value in "val" overflows int as well
+	// or, should we do overflow check in AsInt() instead?
 	if other.dataType == FloatValue && other.floatToIntOverflows() {
 		return val.compareFloat(other)
 	}
@@ -332,6 +339,7 @@ func (val FastVal) compareInt(other FastVal) int {
 }
 
 func (val FastVal) compareUint(other FastVal) int {
+	// how about float overflow check?
 	uintVal := val.AsUint()
 	uintOval := other.AsUint()
 	if uintVal < uintOval {
@@ -366,6 +374,8 @@ func (val FastVal) compareFloat(other FastVal) int {
 	}
 }
 
+// compareBoolean may not make sense conceptually.
+// should "True > False" produce true or false?
 func (val FastVal) compareBoolean(other FastVal) int {
 	// We cheat here and use int comparison mode, since integer conversions
 	// of the boolean datatypes are consistent
@@ -430,6 +440,8 @@ func (val FastVal) Compare(other FastVal) int {
 }
 
 func (val FastVal) Equals(other FastVal) bool {
+	// seems ok to me
+
 	// TODO: I doubt this logic is correct...
 	return val.Compare(other) == 0
 }
@@ -440,6 +452,7 @@ func (val FastVal) matchStrings(other FastVal) bool {
 }
 
 func (val FastVal) Matches(other FastVal) bool {
+	// use fallthrough
 	switch val.dataType {
 	case StringValue:
 		return val.matchStrings(other)
@@ -453,6 +466,7 @@ func (val FastVal) Matches(other FastVal) bool {
 }
 
 func NewFastVal(val interface{}) FastVal {
+	// fallthrough
 	switch val := val.(type) {
 	case int:
 		return NewIntFastVal(int64(val))

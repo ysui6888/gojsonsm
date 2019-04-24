@@ -150,6 +150,8 @@ func (t *Transformer) gatherResolvedFieldRefs(expr Expression) []resolvedFieldRe
 	return resolvedFieldRefs
 }
 
+// not getting this part. it seems that t.ContextStack is always empty unless Loop is involved,
+// getContext() could be called without Loop/. why it panics when t.ContextStack is empty?
 func (t *Transformer) getContext(varID VariableID) *compileContext {
 	if varID == 0 {
 		return nil
@@ -301,12 +303,14 @@ func (t *Transformer) makeDataRefRecurse(expr Expression, context nodeRef, isRoo
 		}
 		return val, nil
 	case RegexExpr:
+	    // if this fails, it would fail for every mutation. should xdcr handle this error differently?
 		regex, err := regexp.Compile(expr.Regex.(string))
 		if err != nil {
 			return nil, errors.New("failed to compile RegexExpr: " + err.Error())
 		}
 		return NewFastVal(regex), nil
 	case PcreExpr:
+	    // same here. this could fail for every mutation
 		pcreWrapper, err := MakePcreWrapper(expr.Pcre.(string))
 		return NewFastVal(pcreWrapper), err
 	case FuncExpr:

@@ -7,6 +7,8 @@ import (
 	"errors"
 )
 
+// is this file for simple parser only/ not currently used?
+
 func parseJsonValue(data []interface{}) (Expression, error) {
 	return ValueExpr{
 		data[1],

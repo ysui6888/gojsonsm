@@ -105,6 +105,7 @@ func (m *FastMatcher) literalFromSlot(slot SlotID) FastVal {
 	return value
 }
 
+// does this need to handle no arg funcs like MathFuncPi?
 func (m *FastMatcher) resolveFunc(fn FuncRef, activeLit *FastVal) FastVal {
 	switch fn.FuncName {
 	case MathFuncAbs:
@@ -222,6 +223,8 @@ func (m *FastMatcher) matchOp(op *OpNode, litVal *FastVal) error {
 		return nil
 	}
 
+	// it seems a bit weird that, when op.Lhs == op.Rhs == nil, we will
+	// do litVal op litVal
 	lhsVal := NewMissingFastVal()
 	if op.Lhs != nil {
 		lhsVal = m.resolveParam(op.Lhs, litVal)
@@ -251,6 +254,7 @@ func (m *FastMatcher) matchOp(op *OpNode, litVal *FastVal) error {
 	case OpTypeMatches:
 		opRes = lhsVal.Matches(rhsVal)
 	case OpTypeExists:
+		// why? is it because a litVal is passed in? do we need to check litVal != nil?
 		opRes = true
 	default:
 		panic("invalid op type")
@@ -259,6 +263,7 @@ func (m *FastMatcher) matchOp(op *OpNode, litVal *FastVal) error {
 	// Mark the result of this operation
 	m.buckets.MarkNode(bucketIdx, opRes)
 
+	// this code is no op since we are not in a loop
 	// Check if running this values ops has resolved the entirety
 	// of the expression, if so we can leave immediately.
 	if m.buckets.IsResolved(0) {
@@ -268,6 +273,7 @@ func (m *FastMatcher) matchOp(op *OpNode, litVal *FastVal) error {
 	return nil
 }
 
+// this method is not being used. is it expected?
 func (m *FastMatcher) matchElems(token tokenType, tokenData []byte, elems map[string]*ExecNode) error {
 	// Note that this assumes that the tokenizer has already been placed at the target
 	// that referenced the elements themselves...
@@ -553,6 +559,7 @@ func (m *FastMatcher) matchExec(token tokenType, tokenData []byte, tokenDataLen 
 			m.skipValue(token)
 		} else {
 			err, shouldReturn := m.matchObjectOrArray(token, tokenData, node)
+			// should we do matchAfter when shouldReturn is true?
 			if err == nil && node.After != nil {
 				m.matchAfter(node.After)
 			}
@@ -560,6 +567,8 @@ func (m *FastMatcher) matchExec(token tokenType, tokenData []byte, tokenDataLen 
 			if shouldReturn {
 				return err
 			}
+
+			// when err is not nil, should we return err here?
 
 			if m.buckets.IsResolved(0) {
 				return nil
@@ -571,6 +580,8 @@ func (m *FastMatcher) matchExec(token tokenType, tokenData []byte, tokenDataLen 
 			if shouldReturn {
 				return err
 			}
+
+			// should the case of err!=nil be handled instead of passing through?
 		} else {
 			// Lets save where the beginning of the array is so that for each
 			// loop entry, we can easily revert back to the beginning of the

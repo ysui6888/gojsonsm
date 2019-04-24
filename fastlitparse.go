@@ -14,6 +14,7 @@ type fastLitParser struct {
 	tmpBytesData [64]byte
 }
 
+// why not use strvconv.ParseInt?
 func (p *fastLitParser) ParseInt(bytes []byte) int64 {
 	var v int64
 
@@ -31,6 +32,7 @@ func (p *fastLitParser) ParseInt(bytes []byte) int64 {
 		if c >= '0' && c <= '9' {
 			v = (10 * v) + int64(c-'0')
 		} else {
+			// return error?
 			return 0
 		}
 	}
@@ -43,6 +45,7 @@ func (p *fastLitParser) ParseInt(bytes []byte) int64 {
 }
 
 func (p *fastLitParser) ParseNumber(bytes []byte) float64 {
+	// is it safe to ignore error?
 	val, _ := strconv.ParseFloat(string(bytes), 64)
 	return val
 }
@@ -52,6 +55,7 @@ func (p *fastLitParser) ParseString(bytes []byte) []byte {
 }
 
 func (p *fastLitParser) ParseStringWLen(bytes []byte, size int) []byte {
+	// length check first?
 	return bytes[1 : size-1]
 }
 
@@ -61,6 +65,7 @@ func (p *fastLitParser) ParseEscString(bytes []byte) []byte {
 }
 
 func (p *fastLitParser) ParseEscStringWLen(bytes []byte, size int) []byte {
+	// length check first?
 	bytesOut, _ := unescapeJsonString(bytes[1:size-1], p.tmpBytesData[:])
 	return bytesOut
 }

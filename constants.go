@@ -35,6 +35,7 @@ const (
 	MathFuncMul     string = "mathMultiply"
 	MathFuncDiv     string = "mathDivide"
 	MathFuncMod     string = "mathModulo"
+	// should this be used to support n1ql sign() function?
 	MathFuncNeg     string = "mathNegate"
 
 	FuncAbs    string = "ABS"

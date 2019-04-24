@@ -61,6 +61,8 @@ func fetchExprFieldRefsRecurse(expr Expression, loopVars []VariableID, fields []
 		for _, subexpr := range expr {
 			fields = fetchExprFieldRefsRecurse(subexpr, loopVars, fields)
 		}
+
+		// fallthrough here could avoid code repitition
 	case AnyInExpr:
 		fields = fetchExprFieldRefsRecurse(expr.InExpr, loopVars, fields)
 		loopVars = append(loopVars, expr.VarId)

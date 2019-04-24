@@ -44,6 +44,7 @@ func FastValDateFunc(val FastVal) FastVal {
 		} else {
 			str = fmt.Sprintf(`%s`, binVal.sliceData)
 		}
+		//this str could be user input I assume? should we support more RFC formats?
 		timeVal, err := time.Parse(time.RFC3339, str)
 		if err != nil {
 			return NewInvalidFastVal()
@@ -51,6 +52,7 @@ func FastValDateFunc(val FastVal) FastVal {
 		return NewTimeFastVal(&timeVal)
 	case StringValue:
 		str := isoToRfc(val.data.(string))
+		// support more RFC format?
 		timeVal, err := time.Parse(time.RFC3339, str)
 		if err != nil {
 			return NewInvalidFastVal()
@@ -62,6 +64,7 @@ func FastValDateFunc(val FastVal) FastVal {
 
 func GetNewTimeFastVal(input string) (FastVal, error) {
 	str := isoToRfc(input)
+	// support more RFC format?
 	if timeVal, err := time.Parse(time.RFC3339, str); err == nil {
 		return NewFastVal(&timeVal), nil
 	} else {

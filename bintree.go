@@ -250,6 +250,8 @@ func (state *binTreeState) SetStallIndex(index int) int {
 	return oldStallIndex
 }
 
+// now sure how this works. it looks like it is marking leaf nodes as false,
+// then go up the tree. Why would this work?
 // Resolve forces the tree to be fully resolved (including cases such as NOT)
 // by doing a depth-first resolution of all unresolved nodes with `false`.
 func (state *binTreeState) Resolve() {

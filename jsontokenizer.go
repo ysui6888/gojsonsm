@@ -33,6 +33,7 @@ func tokenToText(token tokenType) string {
 	switch token {
 	case tknUnknown:
 		return "unknown"
+		)
 	case tknObjectStart:
 		return "object_start"
 	case tknObjectEnd:
@@ -67,6 +68,10 @@ func tokenToText(token tokenType) string {
 
 type tokenizerState int
 
+// are the following states actually used?
+// toksBeginValueOrEmpty
+// toksBeginStringOrEmpty
+// toksBeginString
 const (
 	toksBeginValueOrEmpty tokenizerState = iota
 	toksBeginValue
